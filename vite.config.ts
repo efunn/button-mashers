@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   base: '/tideline/',
+  plugins: [],
   build: {
     target: 'es2022',
   },
