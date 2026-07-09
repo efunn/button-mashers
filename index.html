@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Tideline</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="bg"></canvas>
+      <canvas id="fx"></canvas>
+
+      <div id="ui">
+        <!-- Lobby -->
+        <section id="lobby" class="panel">
+          <h1>Tideline</h1>
+          <p class="tagline">catch what the water brings</p>
+
+          <div class="id-row">
+            <span class="id-label">participant</span>
+            <span id="identifier" class="id-value">——————</span>
+          </div>
+
+          <label class="field">
+            <span>nickname <em>(optional)</em></span>
+            <input id="nickname" type="text" maxlength="24" autocomplete="off" spellcheck="false" />
+          </label>
+
+          <div class="field">
+            <span>hands</span>
+            <div class="seg" id="sel-hands" role="radiogroup">
+              <button data-value="left">left</button>
+              <button data-value="right" class="active">right</button>
+              <button data-value="both">both</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <span>fingers per hand</span>
+            <div class="seg" id="sel-fingers" role="radiogroup">
+              <button data-value="3">3</button>
+              <button data-value="5" class="active">5</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <span>objects per wave</span>
+            <div class="seg" id="sel-chord" role="radiogroup">
+              <button data-value="1" class="active">1</button>
+              <button data-value="2">2</button>
+              <button data-value="3">3</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <span>difficulty</span>
+            <div class="seg" id="sel-difficulty" role="radiogroup"></div>
+          </div>
+
+          <p id="run-info" class="run-info"></p>
+
+          <button id="ready" class="primary">ready</button>
+
+          <details id="past-runs-wrap">
+            <summary>past runs</summary>
+            <ul id="past-runs"></ul>
+          </details>
+        </section>
+
+        <!-- Press-all gate -->
+        <div id="armed" class="overlay hidden">
+          <h2>press all to start</h2>
+          <p id="gate-hint" class="hint"></p>
+          <p class="hint dim">esc to go back</p>
+        </div>
+
+        <!-- Countdown -->
+        <div id="countdown" class="overlay hidden">
+          <span id="countdown-num">3</span>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+          <span id="hud-score">0</span>
+          <span id="hud-progress"></span>
+        </div>
+
+        <!-- Run complete -->
+        <section id="complete" class="panel hidden">
+          <h2 id="complete-title">run complete</h2>
+          <p id="complete-score" class="big-score"></p>
+          <p id="complete-detail" class="hint"></p>
+          <p id="complete-saved" class="hint dim"></p>
+          <div class="row">
+            <button id="save-csv" class="primary">save csv</button>
+            <button id="back-to-lobby">back to shore</button>
+          </div>
+          <p class="hint dim restart-hint">press all keys to start another run</p>
+        </section>
+
+        <!-- Mobile touch buttons -->
+        <div id="touch-buttons" class="hidden"></div>
+      </div>
+    </div>
+  </body>
+</html>

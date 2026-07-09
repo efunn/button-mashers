@@ -1,0 +1,60 @@
+{
+  // Ripple motion and the capture window. The window is centered on the
+  // moment the ripple peak reaches the fingers (perfect press = 0 ms).
+  "ripple": {
+    "frequencyHz": 0.33,
+    "captureWindowMs": 250,
+    "windowCenterOffsetMs": 0,
+    "amplitudePx": 260
+  },
+
+  // Difficulty = the set of reaction times (ms from object spawn to the end
+  // of the capture window). Shorter = harder; values below ~250ms are
+  // effectively impossible and probe finger-selection errors.
+  "difficulties": {
+    "easy":   { "reactionTimesMs": [500, 650, 800, 1000, 1200] },
+    "medium": { "reactionTimesMs": [350, 450, 550, 700, 900] },
+    "hard":   { "reactionTimesMs": [150, 225, 300, 400, 500] }
+  },
+
+  "run": {
+    "targetTrialCount": 100, // ~5:00 at 0.33 Hz; rounds up to the nearest counterbalanced multiple
+    "trialCountBounds": [80, 140]
+  },
+
+  // correct/wrong apply inside the window; earlyLate to mistimed presses;
+  // noPress to each object that floats away untouched; excessPress to every
+  // press beyond the per-cycle limit (spamming loses points!).
+  "scoring": {
+    "correct": 3,
+    "wrongFinger": 1,
+    "earlyLate": 0,
+    "noPress": -1,
+    "excessPress": -1
+  },
+
+  // Physical key positions (KeyboardEvent.code), so non-QWERTY layouts still
+  // use the same fingers. t/i/m/r/l = thumb, index, middle, ring, little.
+  "keys": {
+    "l": { "l": "KeyQ", "r": "KeyW", "m": "KeyE", "i": "KeyR", "t": "KeyV" },
+    "r": { "t": "KeyN", "i": "KeyU", "m": "KeyI", "r": "KeyO", "l": "KeyP" }
+  },
+
+  "visuals": {
+    "fingerColors": {
+      "t": "#f4b942",
+      "i": "#e4572e",
+      "m": "#2ab7a9",
+      "r": "#5c6bc0",
+      "l": "#ab5cc0"
+    },
+    "handShapes": { "l": "leaf", "r": "shell" },
+    "popDurationMs": 380,
+    "scoreFloatDurationMs": 900
+  },
+
+  "modes": {
+    "threeFingerSet": ["i", "m", "r"],
+    "mobile": { "fingers": 3, "maxChord": 2 }
+  }
+}
