@@ -1,7 +1,5 @@
 # Tideline
 
-*(repo/package name: `button-mashers`; CSV files keep the `bm_` prefix)*
-
 A web-based human experimental data collection system for measuring finger
 error behavior, presented as a rhythm-game-like catching game: a ripple laps
 at a shoreline carrying objects toward fixed finger positions; the
@@ -140,3 +138,8 @@ classified analytically against them. Rendering is a pure projection of
 that timeline — dropped or janky frames cannot contaminate the data. See
 `src/core/` (clock, trial generation, run controller, reconciliation), all
 covered by `npm test`.
+
+## Housekeeping
+
+*(repo/package name: `button-mashers`; CSV files keep the `bm_` prefix)*
+
