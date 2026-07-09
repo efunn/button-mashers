@@ -1,6 +1,7 @@
 import type { GameConfig } from '../config/types';
 import type { FingerSlot } from '../core/types';
 import { slotKey } from '../core/types';
+import { orderSlotsForDisplay } from '../render/layout';
 import type { PressListener } from './keyboard';
 
 export function isTouchDevice(): boolean {
@@ -23,10 +24,11 @@ export class TouchInput {
     this.listener = listener;
   }
 
-  /** (Re)build buttons for the active slots. */
+  /** (Re)build buttons for the active slots, in on-screen column order
+   *  (matches the canvas layout — fixes mirrored colors for the left hand). */
   build(slots: FingerSlot[], cfg: GameConfig): void {
     this.container.innerHTML = '';
-    for (const slot of slots) {
+    for (const slot of orderSlotsForDisplay(slots)) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = slot.finger.toUpperCase();

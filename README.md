@@ -51,9 +51,15 @@ Keys (physical positions, so non-QWERTY layouts use the same fingers):
 | left  | Q      | W    | E      | R     | V     |
 | right | P      | O    | I      | U     | N     |
 
+In single-hand modes the played hand's thumb moves to the **spacebar**
+(shown as `_` in the key hints); V/N stay the thumbs in ten-finger mode.
 3-finger mode uses index/middle/ring (W-E-R / U-I-O). Mobile devices get a
 3-button touch demo (chords capped at 2); it demos the mechanics but is not
 intended for serious collection.
+
+A synthesized soundscape (wave wash synced to the ripple, a soft chime at
+each peak, and per-outcome score cues) plays during runs; set
+`audio.masterVolume` to 0 in the config for silent collection.
 
 Escape aborts a run at any time and returns to the lobby. Switching away
 from the tab (or any freeze longer than ~0.6 s) also aborts: frozen frames

@@ -21,8 +21,10 @@ export function testConfig(overrides?: Partial<GameConfig>): GameConfig {
       handShapes: { l: 'leaf', r: 'shell' },
       popDurationMs: 380,
       scoreFloatDurationMs: 900,
+      glowIntensity: 0,
     },
-    modes: { threeFingerSet: ['i', 'm', 'r'], mobile: { fingers: 3, maxChord: 2 } },
+    modes: { threeFingerSet: ['i', 'm', 'r'], singleHandThumbKey: 'Space', mobile: { fingers: 3, maxChord: 2 } },
+    audio: { masterVolume: 0.5 },
     ...overrides,
   };
 }

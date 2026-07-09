@@ -10,7 +10,8 @@ import { randomIdentifier } from './data/identifier';
 import { loadProfile, saveProfile, saveRun } from './data/store';
 import { KeyboardInput } from './input/keyboard';
 import type { SlotPress } from './input/keyboard';
-import { keyLabels } from './input/inputMap';
+import { effectiveCodeForSlot, keyLabels } from './input/inputMap';
+import { GameAudio } from './audio/sound';
 import { TouchInput, isTouchDevice } from './input/touch';
 import type { Effect } from './render/effects';
 import type { FingerMode, FingerVisualState } from './render/fingers';
@@ -42,6 +43,8 @@ export class App {
   private readonly idleClock: RippleClock;
   private layout: Layout;
   private labels = new Map<string, string>();
+  /** slotKey -> display label under the current mode. */
+  private slotLabels = new Map<string, string>();
 
   private readonly keyboard: KeyboardInput;
   private readonly touch: TouchInput;
@@ -70,6 +73,7 @@ export class App {
   private readonly latchFade = new Map<number, { firstT: number; slots: Set<string>; full: boolean }>();
   /** Visual-only randomness (glance/damage assignment), seeded per run. */
   private visualRand: () => number = Math.random;
+  private readonly audio: GameAudio;
   private readonly lastPressAt = new Map<string, number>();
   private debugVisible = false;
   /** Dev/testing only (?ignore-hidden): skip abort on blur/hidden/stall. */
@@ -95,6 +99,7 @@ export class App {
 
     this.keyboard = new KeyboardInput(cfg);
     this.keyboard.attach();
+    this.audio = new GameAudio(cfg);
     this.keyboard.setListener((press) => this.routePress(press));
     this.touch = new TouchInput(el('touch-buttons'));
     this.touch.setListener((press) => this.routePress(press));
@@ -131,6 +136,7 @@ export class App {
     this.layout = this.computeCurrentLayout();
     void keyLabels(cfg).then((labels) => {
       this.labels = labels;
+      this.rebuildSlotLabels();
       this.redrawBackground();
     });
 
@@ -160,7 +166,20 @@ export class App {
 
   private refreshLayout(): void {
     this.layout = this.computeCurrentLayout();
+    // Mode-aware bindings: single-hand modes put the thumb on the spacebar.
+    this.keyboard.setMode(this.lobby.getMode());
+    this.rebuildSlotLabels();
     this.redrawBackground();
+  }
+
+  /** Display labels per slot for the current mode ('_' for the spacebar). */
+  private rebuildSlotLabels(): void {
+    const mode = this.lobby.getMode();
+    this.slotLabels = new Map();
+    for (const slot of this.layout.orderedSlots) {
+      const code = effectiveCodeForSlot(this.cfg, mode, slot);
+      this.slotLabels.set(slotKey(slot), this.labels.get(code) ?? code);
+    }
   }
 
   private redrawBackground(): void {
@@ -174,6 +193,7 @@ export class App {
     this.gate = null;
     this.controller = null;
     this.runClock = null;
+    this.audio.stopRun();
     this.keyboard.captureKeys = false;
     this.effects.length = 0;
     this.destroyed.clear();
@@ -263,6 +283,10 @@ export class App {
     el('armed').classList.add('hidden');
     el('complete').classList.add('hidden');
     el('countdown').classList.remove('hidden');
+
+    // Reached via a key/tap gesture, so the AudioContext may start here.
+    this.audio.ensureStarted();
+    this.audio.startRun(this.runClock);
   }
 
   private startRun(): void {
@@ -276,6 +300,7 @@ export class App {
   private finishRun(aborted: boolean): void {
     if (!this.controller || !this.runRecord) return;
     this.state = 'complete';
+    this.audio.stopRun();
     this.controller.finalize();
 
     this.runRecord.aborted = aborted;
@@ -380,6 +405,7 @@ export class App {
 
   private onPress(press: PressEvent, cls: PressClass, trial: Trial | null): void {
     this.lastOffsetMs = press.offsetMs;
+    this.audio.cue(cls);
     const x = this.colX(press.slot);
     const y = this.edgeYNow(press.t);
     const color = this.cfg.visuals.fingerColors[press.slot.finger];
@@ -472,6 +498,7 @@ export class App {
   private onObjectsLost(trial: Trial, lost: FingerSlot[]): void {
     const now = performance.now();
     const points = this.cfg.scoring.noPress;
+    this.audio.cue('noPress'); // once per batch, not per object
     for (const slot of lost) {
       // Skip objects already visually consumed by a glancing hit.
       if (this.destroyed.has(`${trial.cycle}:${slotKey(slot)}`)) continue;
@@ -522,6 +549,9 @@ export class App {
 
     if (this.state === 'running' && this.controller) {
       this.controller.update(now);
+    }
+    if (this.state === 'running' || this.state === 'countdown') {
+      this.audio.update(now);
     }
 
     pruneEffects(this.effects, now, this.cfg);
@@ -620,7 +650,7 @@ export class App {
       layout: this.layout,
       clock,
       now,
-      labels: this.labels,
+      labels: this.slotLabels,
       fingerStates,
       fingerAlpha,
       fingerMode,

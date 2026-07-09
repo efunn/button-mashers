@@ -14,7 +14,11 @@ body {
 #stage {
   position: relative;
   width: 100vw;
+  /* dvh tracks the *visible* viewport on mobile — with plain 100vh the
+     bottom of the stage (and the touch controls) hides behind the browser
+     chrome. */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 

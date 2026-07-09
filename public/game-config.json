@@ -9,11 +9,12 @@
   },
 
   // Difficulty = the set of reaction times (ms from object spawn to the end
-  // of the capture window). Shorter = harder; values below ~250ms are
-  // effectively impossible and probe finger-selection errors.
+  // of the capture window). Values at/below ~300ms are effectively
+  // impossible and probe finger-selection errors; every difficulty includes
+  // at least one impossible timing (150ms).
   "difficulties": {
-    "easy":   { "reactionTimesMs": [500, 650, 800, 1000, 1200] },
-    "medium": { "reactionTimesMs": [350, 450, 550, 700, 900] },
+    "easy":   { "reactionTimesMs": [150, 500, 650, 800, 1000] },
+    "medium": { "reactionTimesMs": [150, 225, 450, 600, 800] },
     "hard":   { "reactionTimesMs": [150, 225, 300, 400, 500] }
   },
 
@@ -50,11 +51,19 @@
     },
     "handShapes": { "l": "leaf", "r": "shell" },
     "popDurationMs": 380,
-    "scoreFloatDurationMs": 900
+    "scoreFloatDurationMs": 900,
+    "glowIntensity": 0.3
   },
 
   "modes": {
     "threeFingerSet": ["i", "m", "r"],
+    "singleHandThumbKey": "Space", // thumb key in one-handed modes (shown as '_')
     "mobile": { "fingers": 3, "maxChord": 2 }
+  },
+
+  // Synthesized soundscape: wave wash synced to the ripple, a soft cue at
+  // the peak, and per-outcome score cues. Set masterVolume to 0 to disable.
+  "audio": {
+    "masterVolume": 0.5
   }
 }

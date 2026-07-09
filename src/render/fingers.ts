@@ -31,7 +31,7 @@ export function drawFingers(
     const state = states.get(key) ?? 'idle';
 
     if (mode === 'crosshair') {
-      drawCrosshair(ctx, x, layout, color, state, windowPulse, alphas?.get(key) ?? 1);
+      drawCrosshair(ctx, x, layout, color, state, windowPulse, alphas?.get(key) ?? 1, cfg.visuals.glowIntensity);
       continue;
     }
 
@@ -63,10 +63,9 @@ export function drawFingers(
     ctx.strokeStyle = color;
     ctx.stroke();
 
-    // Key letter
+    // Key letter (labels are slot-keyed and already mode-resolved).
     if (showLetters) {
-      const code = cfg.keys[slot.hand][slot.finger];
-      const label = labels.get(code) ?? code;
+      const label = labels.get(key) ?? '';
       ctx.fillStyle = state === 'idle' ? 'rgba(43, 57, 63, 0.85)' : '#ffffff';
       ctx.font = `700 ${Math.round(r * 0.9)}px "Avenir Next", "Segoe UI", system-ui, sans-serif`;
       ctx.textAlign = 'center';
@@ -88,6 +87,33 @@ export function drawFingers(
   }
 }
 
+/**
+ * Cached radial-gradient glow sprites, one per color. Replaces
+ * ctx.shadowBlur in the per-frame crosshair path — shadow rendering is
+ * extremely slow on weak GPUs, which made 10-finger glinting stutter.
+ */
+const glowSprites = new Map<string, HTMLCanvasElement>();
+const GLOW_SIZE = 64;
+
+function glowSprite(color: string): HTMLCanvasElement {
+  let sprite = glowSprites.get(color);
+  if (!sprite) {
+    sprite = document.createElement('canvas');
+    sprite.width = GLOW_SIZE;
+    sprite.height = GLOW_SIZE;
+    const sctx = sprite.getContext('2d')!;
+    const half = GLOW_SIZE / 2;
+    const grad = sctx.createRadialGradient(half, half, half * 0.15, half, half, half);
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.55, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    sctx.fillStyle = grad;
+    sctx.fillRect(0, 0, GLOW_SIZE, GLOW_SIZE);
+    glowSprites.set(color, sprite);
+  }
+  return sprite;
+}
+
 function drawCrosshair(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -96,6 +122,7 @@ function drawCrosshair(
   state: FingerVisualState,
   windowPulse: number | null,
   ammoAlpha: number,
+  glowIntensity: number,
 ): void {
   const y = layout.crosshairY;
   // Single swell over the window: 0 at open/close, 1 at the center.
@@ -109,9 +136,10 @@ function drawCrosshair(
   // crosshairs still visibly react.
   const base = Math.max(0.2, Math.min(1, ammoAlpha));
 
-  if (pulse > 0 || pressed) {
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 10 + 16 * pulse + (pressed ? 8 : 0);
+  if (glowIntensity > 0 && (pulse > 0 || pressed)) {
+    const glowR = r * 1.7 + 5 * pulse;
+    ctx.globalAlpha = glowIntensity * (0.22 * pulse + (pressed ? 0.16 : 0));
+    ctx.drawImage(glowSprite(color), x - glowR, y - glowR, glowR * 2, glowR * 2);
   }
 
   // Translucent center: darkens while the key is down.

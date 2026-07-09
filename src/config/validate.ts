@@ -115,6 +115,9 @@ export function validateConfig(raw: unknown): GameConfig {
     handShapes,
     popDurationMs: num(visuals, 'visuals', 'popDurationMs', { min: 0 }),
     scoreFloatDurationMs: num(visuals, 'visuals', 'scoreFloatDurationMs', { min: 0 }),
+    // Optional: defaults to 0 (no halo) to keep older configs valid.
+    glowIntensity:
+      visuals.glowIntensity === undefined ? 0 : num(visuals, 'visuals', 'glowIntensity', { min: 0, max: 1 }),
   };
 
   const modes = req(root.modes, 'modes');
@@ -123,13 +126,26 @@ export function validateConfig(raw: unknown): GameConfig {
     throw new ConfigError('modes.threeFingerSet', 'must be an array of exactly 3 finger codes (t/i/m/r/l)');
   }
   const mobile = req(modes.mobile, 'modes.mobile');
+  const singleHandThumbKey =
+    modes.singleHandThumbKey === undefined ? 'Space' : str(modes, 'modes', 'singleHandThumbKey');
+  if (seenCodes.has(singleHandThumbKey)) {
+    throw new ConfigError('modes.singleHandThumbKey', `duplicates key code "${singleHandThumbKey}" already used by ${seenCodes.get(singleHandThumbKey)}`);
+  }
   const modesOut = {
     threeFingerSet: threeRaw as GameConfig['modes']['threeFingerSet'],
+    singleHandThumbKey,
     mobile: {
       fingers: num(mobile, 'modes.mobile', 'fingers', { min: 1, max: 5 }),
       maxChord: num(mobile, 'modes.mobile', 'maxChord', { min: 1, max: 3 }),
     },
   };
+
+  // Optional block: defaults keep older configs valid.
+  const audioOut = { masterVolume: 0.5 };
+  if (root.audio !== undefined) {
+    const audio = req(root.audio, 'audio');
+    audioOut.masterVolume = num(audio, 'audio', 'masterVolume', { min: 0, max: 1 });
+  }
 
   return {
     ripple: rippleOut,
@@ -139,5 +155,6 @@ export function validateConfig(raw: unknown): GameConfig {
     keys,
     visuals: visualsOut,
     modes: modesOut,
+    audio: audioOut,
   };
 }

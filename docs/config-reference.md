@@ -23,7 +23,9 @@ verbatim in the lobby selector and the CSV filename.
 the **end** of the capture window (the spec's "spawn 300 ms away + 200 ms
 window = 500 ms maximum reaction time"). Each value is fully counterbalanced
 against every target. Values near or below the simple-reaction floor
-(~250 ms) are intentionally impossible and probe finger-selection errors.
+(~250–300 ms) are intentionally impossible and probe finger-selection
+errors; the shipped defaults give every difficulty at least one impossible
+timing (150 ms — easy has one, medium two, hard three).
 
 ## run
 
@@ -51,6 +53,16 @@ attribution; `noPress` is applied per object when the cycle resolves.
 per hand (`l`/`r`) and finger (`t`/`i`/`m`/`r`/`l` = thumb…little).
 Duplicate codes are rejected. Remapping here is safe; the UI labels follow.
 
+In single-hand modes the played hand's thumb key is replaced by
+`modes.singleHandThumbKey` (default `"Space"`, displayed as `_`); the
+replaced key becomes unmapped for that mode.
+
+## audio
+
+| field          | meaning                                                          |
+| -------------- | ----------------------------------------------------------------- |
+| `masterVolume` | 0–1 gain for the synthesized soundscape; `0` disables audio. Optional block (defaults to 0.5). |
+
 ## visuals
 
 | field                  | meaning                                                        |
@@ -59,6 +71,7 @@ Duplicate codes are rejected. Remapping here is safe; the UI labels follow.
 | `handShapes`           | `"leaf"` or `"shell"` per hand (distinct silhouettes per hand). |
 | `popDurationMs`        | Capture pop animation length.                                   |
 | `scoreFloatDurationMs` | Rising score text length.                                       |
+| `glowIntensity`        | 0–1 strength of the crosshair halo during the window; `0` (default) shows only the ring swell and glint arc. Optional. |
 
 ## modes
 

@@ -1,7 +1,7 @@
 import type { GameConfig } from '../config/types';
-import type { FingerSlot } from '../core/types';
+import type { FingerSlot, ModeSelection } from '../core/types';
 import { slotKey } from '../core/types';
-import { buildCodeMap } from './inputMap';
+import { buildCodeMap, buildEffectiveCodeMap } from './inputMap';
 import { normalizeTimestamp } from '../core/run';
 
 export interface SlotPress {
@@ -18,7 +18,7 @@ export type PressListener = (press: SlotPress) => void;
  * of the same key so held keys can't fire across cycles.
  */
 export class KeyboardInput {
-  private readonly codeMap: Map<string, FingerSlot>;
+  private codeMap: Map<string, FingerSlot>;
   private readonly heldSlots = new Set<string>();
   private listener: PressListener | null = null;
   /** When true, preventDefault() on mapped game keys. */
@@ -44,8 +44,17 @@ export class KeyboardInput {
     this.heldSlots.clear();
   };
 
-  constructor(cfg: GameConfig) {
+  constructor(private readonly cfg: GameConfig) {
     this.codeMap = buildCodeMap(cfg);
+  }
+
+  /**
+   * Rebind for a mode: single-hand modes put the played thumb on the
+   * spacebar (the replaced key becomes unmapped).
+   */
+  setMode(mode: ModeSelection): void {
+    this.codeMap = buildEffectiveCodeMap(this.cfg, mode);
+    this.heldSlots.clear();
   }
 
   attach(): void {

@@ -36,11 +36,20 @@ export interface VisualsConfig {
   handShapes: Record<Hand, 'leaf' | 'shell'>;
   popDurationMs: number;
   scoreFloatDurationMs: number;
+  /** Crosshair glow strength during the window; 0 disables the halo. */
+  glowIntensity: number;
 }
 
 export interface ModesConfig {
   threeFingerSet: Finger[];
+  /** Thumb key for single-hand modes (replaces the configured thumb key). */
+  singleHandThumbKey: string;
   mobile: { fingers: number; maxChord: number };
+}
+
+export interface AudioConfig {
+  /** 0 disables audio entirely. */
+  masterVolume: number;
 }
 
 export interface GameConfig {
@@ -52,4 +61,5 @@ export interface GameConfig {
   keys: Record<Hand, Record<Finger, string>>;
   visuals: VisualsConfig;
   modes: ModesConfig;
+  audio: AudioConfig;
 }
