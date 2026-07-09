@@ -4,6 +4,7 @@ export default defineConfig({
   base: '/tideline/',
   plugins: [],
   build: {
+    outDir: 'dist/tideline',
     target: 'es2022',
   },
   server: {
