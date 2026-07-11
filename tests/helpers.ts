@@ -23,7 +23,7 @@ export function testConfig(overrides?: Partial<GameConfig>): GameConfig {
       scoreFloatDurationMs: 900,
       glowIntensity: 0,
     },
-    modes: { threeFingerSet: ['i', 'm', 'r'], singleHandThumbKey: 'Space', mobile: { fingers: 3, maxChord: 2 } },
+    modes: { threeFingerSet: ['i', 'm', 'r'], fourFingerSet: ['i', 'm', 'r', 'l'], singleHandThumbKey: 'Space', mobile: { fingers: 4, maxChord: 2 } },
     audio: { masterVolume: 0.5 },
     ...overrides,
   };

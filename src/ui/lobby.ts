@@ -33,7 +33,7 @@ export class LobbyUI {
     const defaultDifficulty = difficulties.includes('medium') ? 'medium' : difficulties[0]!;
     this.mode = {
       hands: 'right',
-      fingersPerHand: mobile ? 3 : 5,
+      fingersPerHand: mobile ? (cfg.modes.mobile.fingers as 3 | 4 | 5) : 5,
       chordSize: 1,
       difficulty: defaultDifficulty,
     };
@@ -49,7 +49,7 @@ export class LobbyUI {
     }
 
     this.wireSegment('sel-hands', (v) => (this.mode.hands = v as ModeSelection['hands']));
-    this.wireSegment('sel-fingers', (v) => (this.mode.fingersPerHand = Number(v) as 3 | 5));
+    this.wireSegment('sel-fingers', (v) => (this.mode.fingersPerHand = Number(v) as 3 | 4 | 5));
     this.wireSegment('sel-chord', (v) => (this.mode.chordSize = Number(v) as 1 | 2 | 3));
     this.wireSegment('sel-difficulty', (v) => (this.mode.difficulty = v));
 
@@ -79,12 +79,11 @@ export class LobbyUI {
   }
 
   private applyMobileConstraints(): void {
-    // Mobile demo: 3 fingers, one hand, chords capped at maxChord.
+    // Mobile: one hand, chords capped at maxChord; 3/4/5 fingers all allowed.
     const { maxChord } = this.cfg.modes.mobile;
-    this.mode.fingersPerHand = 3;
     if (this.mode.hands === 'both') this.mode.hands = 'right';
     if (this.mode.chordSize > maxChord) this.mode.chordSize = maxChord as 1 | 2 | 3;
-    this.setSegment('sel-fingers', '3', ['5']);
+    this.setSegment('sel-fingers', String(this.mode.fingersPerHand), []);
     this.setSegment('sel-hands', this.mode.hands, ['both']);
     this.setSegment('sel-chord', String(this.mode.chordSize), maxChord < 3 ? ['3'] : []);
   }

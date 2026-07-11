@@ -6,7 +6,9 @@ import { mulberry32, randInt, shuffle } from './rng';
 
 /** Fingers active per hand for a mode, in a stable order. */
 export function activeFingers(mode: ModeSelection, cfg: GameConfig): Finger[] {
-  return mode.fingersPerHand === 5 ? [...FINGERS] : [...cfg.modes.threeFingerSet];
+  if (mode.fingersPerHand === 5) return [...FINGERS];
+  if (mode.fingersPerHand === 4) return [...cfg.modes.fourFingerSet];
+  return [...cfg.modes.threeFingerSet];
 }
 
 export function activeHands(mode: ModeSelection): Hand[] {

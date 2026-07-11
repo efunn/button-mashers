@@ -57,8 +57,9 @@
 
   "modes": {
     "threeFingerSet": ["i", "m", "r"],
+    "fourFingerSet": ["i", "m", "r", "l"], // non-thumb four (Q-W-E-R / U-I-O-P)
     "singleHandThumbKey": "Space", // thumb key in one-handed modes (shown as '_')
-    "mobile": { "fingers": 3, "maxChord": 2 }
+    "mobile": { "fingers": 4, "maxChord": 2 }
   },
 
   // Synthesized soundscape: wave wash synced to the ripple, a soft cue at

@@ -170,6 +170,7 @@ export class App {
     this.keyboard.setMode(this.lobby.getMode());
     this.rebuildSlotLabels();
     this.redrawBackground();
+    this.touch.reflow(this.layout);
   }
 
   /** Display labels per slot for the current mode ('_' for the spacebar). */
@@ -221,7 +222,7 @@ export class App {
         ? 'tip: hold several keys at once — if some don’t light up, your keyboard may drop chord presses'
         : 'press every key once to begin';
     if (this.mobile) {
-      this.touch.build(this.currentModeSlots(), this.cfg);
+      this.touch.build(this.currentModeSlots(), this.cfg, this.layout);
       this.touch.show(true);
     }
     this.refreshLayout();
@@ -328,7 +329,7 @@ export class App {
     this.keyboard.captureKeys = true;
     this.gate = new PressAllGate(this.currentModeSlots());
     if (this.mobile) {
-      this.touch.build(this.currentModeSlots(), this.cfg);
+      this.touch.build(this.currentModeSlots(), this.cfg, this.layout);
       this.touch.show(true);
     } else {
       this.touch.show(false);

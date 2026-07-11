@@ -125,6 +125,10 @@ export function validateConfig(raw: unknown): GameConfig {
   if (!Array.isArray(threeRaw) || threeRaw.length !== 3 || !threeRaw.every((f) => (FINGERS as string[]).includes(f as string))) {
     throw new ConfigError('modes.threeFingerSet', 'must be an array of exactly 3 finger codes (t/i/m/r/l)');
   }
+  const fourRaw = modes.fourFingerSet === undefined ? ['i', 'm', 'r', 'l'] : modes.fourFingerSet;
+  if (!Array.isArray(fourRaw) || fourRaw.length !== 4 || !fourRaw.every((f) => (FINGERS as string[]).includes(f as string))) {
+    throw new ConfigError('modes.fourFingerSet', 'must be an array of exactly 4 finger codes (t/i/m/r/l)');
+  }
   const mobile = req(modes.mobile, 'modes.mobile');
   const singleHandThumbKey =
     modes.singleHandThumbKey === undefined ? 'Space' : str(modes, 'modes', 'singleHandThumbKey');
@@ -133,6 +137,7 @@ export function validateConfig(raw: unknown): GameConfig {
   }
   const modesOut = {
     threeFingerSet: threeRaw as GameConfig['modes']['threeFingerSet'],
+    fourFingerSet: fourRaw as GameConfig['modes']['fourFingerSet'],
     singleHandThumbKey,
     mobile: {
       fingers: num(mobile, 'modes.mobile', 'fingers', { min: 1, max: 5 }),

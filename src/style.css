@@ -352,20 +352,32 @@ button.primary:disabled {
 
 /* ---------- mobile touch buttons ---------- */
 
+/* Container spans from the wave's lowest waterline (top set in JS) to the
+   bottom of the screen, so the touch targets are tall. */
 #touch-buttons {
   position: absolute;
+  top: 55%;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
+  flex-direction: column;
   gap: 10px;
   padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
   touch-action: none;
 }
 
+/* Row of finger buttons; grows to fill the space above the thumb. */
+#touch-buttons .touch-row {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+}
+
 #touch-buttons button {
   flex: 1;
-  height: 78px;
+  min-height: 64px;
   border-radius: 16px;
   border: 3px solid var(--finger-color, #3fbfa9);
   background: rgba(13, 42, 53, 0.55);
@@ -375,6 +387,13 @@ button.primary:disabled {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Full-width thumb button underneath the finger row (5-finger mobile). */
+#touch-buttons .touch-thumb {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 72px;
 }
 
 #touch-buttons button.pressed {

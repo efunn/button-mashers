@@ -78,5 +78,6 @@ replaced key becomes unmapped for that mode.
 | field             | meaning                                                                |
 | ----------------- | ----------------------------------------------------------------------- |
 | `threeFingerSet`  | Which 3 fingers the 3-finger mode uses (default index/middle/ring).     |
-| `mobile.fingers`  | Fingers on touch devices (3).                                            |
+| `fourFingerSet`   | Which 4 fingers the 4-finger mode uses (default the non-thumb four). Optional; defaults to `["i","m","r","l"]`. |
+| `mobile.fingers`  | Default finger count on touch devices (3/4/5; shipped default 4). Users can still switch. |
 | `mobile.maxChord` | Chord cap on touch devices (2).                                          |

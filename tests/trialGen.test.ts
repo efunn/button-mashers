@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activeFingers,
   buildTransitionBalancedSequence,
   generateSchedule,
   planSchedule,
@@ -54,12 +55,41 @@ describe('planSchedule', () => {
   });
 });
 
+describe('activeFingers', () => {
+  it('selects the finger set by count', () => {
+    expect(activeFingers(mode({ fingersPerHand: 5 }), cfg)).toEqual(['t', 'i', 'm', 'r', 'l']);
+    expect(activeFingers(mode({ fingersPerHand: 4 }), cfg)).toEqual(['i', 'm', 'r', 'l']);
+    expect(activeFingers(mode({ fingersPerHand: 3 }), cfg)).toEqual(['i', 'm', 'r']);
+  });
+
+  it('4-finger set never includes the thumb', () => {
+    expect(activeFingers(mode({ fingersPerHand: 4 }), cfg)).not.toContain('t');
+  });
+});
+
 describe('targetSets', () => {
   it('enumerates same-hand chord combinations', () => {
     expect(targetSets(mode({ chordSize: 2 }), cfg)).toHaveLength(10);
     expect(targetSets(mode({ hands: 'both', chordSize: 2 }), cfg)).toHaveLength(20);
     expect(targetSets(mode({ hands: 'both', chordSize: 3, fingersPerHand: 3 }), cfg)).toHaveLength(2);
     expect(targetSets(mode({ hands: 'both' }), cfg)).toHaveLength(10);
+  });
+
+  it('handles 4-finger single and chord counts', () => {
+    // Single-hand singles → 4 slots; both hands → 8.
+    expect(targetSets(mode({ fingersPerHand: 4 }), cfg)).toHaveLength(4);
+    expect(targetSets(mode({ hands: 'both', fingersPerHand: 4 }), cfg)).toHaveLength(8);
+    // 2-of-4 chords per hand = C(4,2) = 6; both hands = 12.
+    expect(targetSets(mode({ fingersPerHand: 4, chordSize: 2 }), cfg)).toHaveLength(6);
+    expect(targetSets(mode({ hands: 'both', fingersPerHand: 4, chordSize: 2 }), cfg)).toHaveLength(12);
+  });
+
+  it('4-finger single-hand run counterbalances cleanly (4 fingers x 5 timings = 20)', () => {
+    const plan = planSchedule(mode({ fingersPerHand: 4 }), cfg);
+    expect(plan.numSets).toBe(4);
+    expect(plan.numTimings).toBe(5);
+    expect(plan.totalTrials % 20).toBe(0);
+    expect(plan.outOfBounds).toBe(false);
   });
 
   it('chord targets never span hands', () => {

@@ -42,6 +42,8 @@ export interface VisualsConfig {
 
 export interface ModesConfig {
   threeFingerSet: Finger[];
+  /** Fingers used in 4-finger mode (default the four non-thumb fingers). */
+  fourFingerSet: Finger[];
   /** Thumb key for single-hand modes (replaces the configured thumb key). */
   singleHandThumbKey: string;
   mobile: { fingers: number; maxChord: number };

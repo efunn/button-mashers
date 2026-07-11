@@ -19,6 +19,17 @@ describe('validateConfig', () => {
     expect(cfg.keys.l.t).toBe('KeyV');
     expect(cfg.keys.r.t).toBe('KeyN');
     expect(cfg.modes.threeFingerSet).toEqual(['i', 'm', 'r']);
+    expect(cfg.modes.fourFingerSet).toEqual(['i', 'm', 'r', 'l']);
+  });
+
+  it('defaults fourFingerSet when absent and rejects a wrong-length one', () => {
+    const noFour = JSON.parse(JSON.stringify(testConfig()));
+    delete noFour.modes.fourFingerSet;
+    expect(validateConfig(noFour).modes.fourFingerSet).toEqual(['i', 'm', 'r', 'l']);
+
+    const badFour = JSON.parse(JSON.stringify(testConfig()));
+    badFour.modes.fourFingerSet = ['i', 'm', 'r']; // only 3
+    expect(() => validateConfig(badFour)).toThrow(/fourFingerSet/);
   });
 
   it('rejects missing sections and bad values with descriptive paths', () => {

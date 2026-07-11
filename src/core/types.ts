@@ -27,8 +27,8 @@ export type HandMode = 'left' | 'right' | 'both';
 
 export interface ModeSelection {
   hands: HandMode;
-  /** 3 (central) or 5 fingers per hand. */
-  fingersPerHand: 3 | 5;
+  /** 3 (central), 4 (non-thumb), or 5 fingers per hand. */
+  fingersPerHand: 3 | 4 | 5;
   /** Objects per trial: 1 = single, 2-3 = chords (chords target one hand at a time). */
   chordSize: 1 | 2 | 3;
   difficulty: Difficulty;
