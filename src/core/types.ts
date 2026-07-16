@@ -32,6 +32,8 @@ export interface ModeSelection {
   /** Objects per trial: 1 = single, 2-3 = chords (chords target one hand at a time). */
   chordSize: 1 | 2 | 3;
   difficulty: Difficulty;
+  /** Key of config.speeds: the period between objects (franticness). */
+  speed: string;
 }
 
 /** One pregenerated trial (one ripple cycle). */
@@ -48,7 +50,10 @@ export interface Trial {
   peakTime: number;
   windowOpen: number;
   windowClose: number;
+  /** When the falling band fades in near the top (uniform across trials). */
   spawnTime: number;
+  /** When the neutral band morphs into the target(s): windowClose - RT. */
+  revealTime: number;
 }
 
 /** A raw key/touch press on the performance.now() timeline. */

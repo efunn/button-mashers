@@ -1,9 +1,9 @@
-import type { RippleConfig, ScoringConfig } from '../config/types';
+import type { TimingConfig, ScoringConfig } from '../config/types';
 import type { PressClass } from './types';
 
 /** Is a peak-relative offset inside the capture window? */
-export function inWindow(offsetMs: number, ripple: RippleConfig): boolean {
-  return Math.abs(offsetMs - ripple.windowCenterOffsetMs) <= ripple.captureWindowMs / 2;
+export function inWindow(offsetMs: number, timing: TimingConfig): boolean {
+  return Math.abs(offsetMs - timing.windowCenterOffsetMs) <= timing.captureWindowMs / 2;
 }
 
 /**
@@ -14,10 +14,10 @@ export function inWindow(offsetMs: number, ripple: RippleConfig): boolean {
 export function classifyPress(
   offsetMs: number,
   hitTargetSlot: boolean,
-  ripple: RippleConfig,
+  timing: TimingConfig,
 ): PressClass {
-  if (!inWindow(offsetMs, ripple)) {
-    return offsetMs < ripple.windowCenterOffsetMs ? 'early' : 'late';
+  if (!inWindow(offsetMs, timing)) {
+    return offsetMs < timing.windowCenterOffsetMs ? 'early' : 'late';
   }
   return hitTargetSlot ? 'correct' : 'wrongFinger';
 }

@@ -1,15 +1,29 @@
 {
-  // Ripple motion and the capture window. The window is centered on the
-  // moment the ripple peak reaches the fingers (perfect press = 0 ms).
-  "ripple": {
-    "frequencyHz": 0.33,
+  // The capture window is centered on the moment a band crosses the
+  // crosshair line (perfect press = 0 ms).
+  "timing": {
     "captureWindowMs": 250,
-    "windowCenterOffsetMs": 0,
-    "amplitudePx": 260
+    "windowCenterOffsetMs": 0
   },
 
-  // Difficulty = the set of reaction times (ms from object spawn to the end
-  // of the capture window). Values at/below ~300ms are effectively
+  // Speed = period between objects in ms (franticness). Names appear in the
+  // lobby selector and the CSV filename.
+  "speeds": {
+    "slow": 1500,
+    "fast": 1000,
+    "extreme": 500
+  },
+  "defaultSpeed": "fast",
+
+  // How long before its crossing a band fades in near the top of the screen
+  // (its whole trajectory is prespawned). Must exceed the longest reaction
+  // time + half window. Rendering only.
+  "fall": {
+    "fadeLeadMs": 2500
+  },
+
+  // Difficulty = the set of reaction times (ms from the band's reveal to
+  // the end of the capture window). Values at/below ~300ms are effectively
   // impossible and probe finger-selection errors; every difficulty includes
   // at least one impossible timing (150ms).
   "difficulties": {
@@ -19,12 +33,12 @@
   },
 
   "run": {
-    "targetTrialCount": 100, // ~5:00 at 0.33 Hz; rounds up to the nearest counterbalanced multiple
+    "targetTrialCount": 100, // fixed across speeds; rounds up to the nearest counterbalanced multiple
     "trialCountBounds": [80, 140]
   },
 
   // correct/wrong apply inside the window; earlyLate to mistimed presses;
-  // noPress to each object that floats away untouched; excessPress to every
+  // noPress to each object that crosses the line untouched; excessPress to every
   // press beyond the per-cycle limit (spamming loses points!).
   "scoring": {
     "correct": 3,
@@ -49,7 +63,7 @@
       "r": "#5c6bc0",
       "l": "#ab5cc0"
     },
-    "handShapes": { "l": "leaf", "r": "shell" },
+    "handShapes": { "l": "diamond", "r": "circle" },
     "popDurationMs": 380,
     "scoreFloatDurationMs": 900,
     "glowIntensity": 0.3
@@ -62,8 +76,8 @@
     "mobile": { "fingers": 4, "maxChord": 2 }
   },
 
-  // Synthesized soundscape: wave wash synced to the ripple, a soft cue at
-  // the peak, and per-outcome score cues. Set masterVolume to 0 to disable.
+  // Synthesized cues: a low pulse at each crossing and per-outcome score
+  // cues (no background track). Set masterVolume to 0 to disable.
   "audio": {
     "masterVolume": 0.5
   }

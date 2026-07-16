@@ -63,6 +63,7 @@ export function csvFilename(opts: {
     ...(nick ? [nick] : []),
     modeTag(opts.mode),
     opts.mode.difficulty,
+    opts.mode.speed,
     stamp,
     ...(opts.aborted ? ['aborted'] : []),
   ].join('_') + '.csv';

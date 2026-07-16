@@ -3,7 +3,10 @@ import type { ModeSelection } from '../src/core/types';
 
 export function testConfig(overrides?: Partial<GameConfig>): GameConfig {
   return {
-    ripple: { frequencyHz: 0.5, captureWindowMs: 200, windowCenterOffsetMs: 0, amplitudePx: 260 },
+    timing: { captureWindowMs: 200, windowCenterOffsetMs: 0 },
+    speeds: { slow: 1500, fast: 1000, extreme: 500, legacy: 2000 },
+    defaultSpeed: 'fast',
+    fall: { fadeLeadMs: 2500 },
     difficulties: {
       easy: { reactionTimesMs: [500, 650, 800, 1000, 1200] },
       medium: { reactionTimesMs: [350, 450, 550, 700, 900] },
@@ -18,7 +21,7 @@ export function testConfig(overrides?: Partial<GameConfig>): GameConfig {
     },
     visuals: {
       fingerColors: { t: '#f4b942', i: '#e4572e', m: '#2ab7a9', r: '#5c6bc0', l: '#ab5cc0' },
-      handShapes: { l: 'leaf', r: 'shell' },
+      handShapes: { l: 'diamond', r: 'circle' },
       popDurationMs: 380,
       scoreFloatDurationMs: 900,
       glowIntensity: 0,
@@ -30,5 +33,5 @@ export function testConfig(overrides?: Partial<GameConfig>): GameConfig {
 }
 
 export function mode(overrides?: Partial<ModeSelection>): ModeSelection {
-  return { hands: 'left', fingersPerHand: 5, chordSize: 1, difficulty: 'medium', ...overrides };
+  return { hands: 'left', fingersPerHand: 5, chordSize: 1, difficulty: 'medium', speed: 'legacy', ...overrides };
 }

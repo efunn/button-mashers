@@ -72,9 +72,9 @@ export class TouchInput {
     this.position(layout);
   }
 
-  /** Anchor the container top to the wave's lowest waterline. */
+  /** Anchor the container top just below the target line. */
   position(layout: Layout): void {
-    this.container.style.top = `${Math.round(layout.shoreY + layout.amplitudePx)}px`;
+    this.container.style.top = `${Math.round(layout.crosshairY + layout.fingerRadius + 18)}px`;
   }
 
   /** Reposition on resize without rebuilding (no-op if never built). */

@@ -97,8 +97,15 @@ export function planSchedule(mode: ModeSelection, cfg: GameConfig): SchedulePlan
     numSets,
     numTimings,
     outOfBounds: !chosen.inBounds,
-    runDurationMs: (chosen.total * 1000) / cfg.ripple.frequencyHz,
+    runDurationMs: chosen.total * periodOf(mode, cfg),
   };
+}
+
+/** Period between objects in ms for the mode's selected speed. */
+export function periodOf(mode: ModeSelection, cfg: GameConfig): number {
+  const periodMs = cfg.speeds[mode.speed];
+  if (periodMs === undefined) throw new Error(`Unknown speed "${mode.speed}"`);
+  return periodMs;
 }
 
 /**
@@ -218,17 +225,21 @@ export function generateSchedule(mode: ModeSelection, cfg: GameConfig, seed: num
     windowOpen: 0,
     windowClose: 0,
     spawnTime: 0,
+    revealTime: 0,
   }));
 }
 
 /** Fill absolute performance.now()-timeline times once the run clock exists. */
 export function fillScheduleTimes(trials: Trial[], clock: RippleClock, cfg: GameConfig): void {
-  const halfWindow = cfg.ripple.captureWindowMs / 2;
-  const center = cfg.ripple.windowCenterOffsetMs;
+  const halfWindow = cfg.timing.captureWindowMs / 2;
+  const center = cfg.timing.windowCenterOffsetMs;
   for (const trial of trials) {
     trial.peakTime = clock.peakTime(trial.cycle);
     trial.windowOpen = trial.peakTime + center - halfWindow;
     trial.windowClose = trial.peakTime + center + halfWindow;
-    trial.spawnTime = trial.windowClose - trial.reactionTimeMs;
+    // The band itself fades in at a uniform lead; only the REVEAL carries
+    // the reaction-time manipulation (formerly the spawn formula).
+    trial.spawnTime = trial.peakTime - cfg.fall.fadeLeadMs;
+    trial.revealTime = trial.windowClose - trial.reactionTimeMs;
   }
 }

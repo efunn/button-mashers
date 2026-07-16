@@ -5,23 +5,29 @@ it can be edited on the deployed server without rebuilding). `//` and
 `/* */` comments are allowed. Every field is required unless noted; the
 loader fails fast with the offending path.
 
-## ripple
+## timing
 
 | field                  | type   | meaning                                                                                      |
 | ---------------------- | ------ | -------------------------------------------------------------------------------------------- |
-| `frequencyHz`          | number | Ripple cycles per second. Default ≈0.33 → one wave (one trial) every ~3 s.                   |
-| `captureWindowMs`      | number | Total width of the capture window. Centered on the moment the ripple peak reaches the fingers: with 200, presses within ±100 ms score. |
+| `captureWindowMs`      | number | Total width of the capture window. Centered on the moment the band crosses the target line: with 250, presses within ±125 ms score. |
 | `windowCenterOffsetMs` | number | Shifts the window center relative to the peak (0 = symmetric). Escape hatch if the design needs an asymmetric window, e.g. ending exactly at the peak. |
-| `amplitudePx`          | number | Visual travel of the water edge in px, hand-tuned for the default frequency/window. Clamped to the viewport. **Rendering only** — never affects timing or data. |
+
+## speeds / defaultSpeed / fall
+
+| field            | meaning                                                                        |
+| ---------------- | ------------------------------------------------------------------------------ |
+| `speeds`         | Named periods between objects in ms (e.g. slow/fast/extreme = 1500/1000/500). Names appear in the lobby selector and the CSV filename. |
+| `defaultSpeed`   | Which speed the lobby preselects. Must be a key of `speeds`.                   |
+| `fall.fadeLeadMs`| How long before its crossing a band fades in near the top of the screen (whole trajectory prespawned). Must exceed the longest reaction time + half window; the validator warns otherwise. **Rendering only.** |
 
 ## difficulties
 
 A map of difficulty name → `{ "reactionTimesMs": [...] }`. Names appear
 verbatim in the lobby selector and the CSV filename.
 
-`reactionTimesMs` are the timing conditions: the time from object spawn to
-the **end** of the capture window (the spec's "spawn 300 ms away + 200 ms
-window = 500 ms maximum reaction time"). Each value is fully counterbalanced
+`reactionTimesMs` are the timing conditions: the time from the band's
+**reveal** (the neutral band morphing into the target) to the **end** of
+the capture window — i.e. the maximum reaction time available. Each value is fully counterbalanced
 against every target. Values near or below the simple-reaction floor
 (~250–300 ms) are intentionally impossible and probe finger-selection
 errors; the shipped defaults give every difficulty at least one impossible
@@ -68,7 +74,7 @@ replaced key becomes unmapped for that mode.
 | field                  | meaning                                                        |
 | ---------------------- | --------------------------------------------------------------- |
 | `fingerColors`         | Hex color per finger, mirrored across hands.                    |
-| `handShapes`           | `"leaf"` or `"shell"` per hand (distinct silhouettes per hand). |
+| `handShapes`           | `"diamond"` or `"circle"` per hand (distinct silhouettes per hand). |
 | `popDurationMs`        | Capture pop animation length.                                   |
 | `scoreFloatDurationMs` | Rising score text length.                                       |
 | `glowIntensity`        | 0–1 strength of the crosshair halo during the window; `0` (default) shows only the ring swell and glint arc. Optional. |

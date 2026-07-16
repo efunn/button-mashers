@@ -3,7 +3,7 @@ import { RippleClock } from './core/clock';
 import { canonicalColumnX } from './core/reconcile';
 import { RunController } from './core/run';
 import type { RunEvents } from './core/run';
-import { activeSlots, fillScheduleTimes, generateSchedule } from './core/trialGen';
+import { activeSlots, fillScheduleTimes, generateSchedule, periodOf } from './core/trialGen';
 import type { FingerSlot, PressClass, PressEvent, RunRecord, Trial } from './core/types';
 import { sameSlot, slotKey } from './core/types';
 import { randomIdentifier } from './data/identifier';
@@ -16,8 +16,8 @@ import { TouchInput, isTouchDevice } from './input/touch';
 import type { Effect } from './render/effects';
 import type { FingerMode, FingerVisualState } from './render/fingers';
 import { computeLayout, type Layout } from './render/layout';
-import { renderBackground, renderFrame, pruneEffects } from './render/renderer';
-import type { DebugInfo, RenderState, VisibleObject } from './render/renderer';
+import { fallY, renderBackground, renderFrame, pruneEffects } from './render/renderer';
+import type { DebugInfo, RenderState, VisibleTrial } from './render/renderer';
 import { LobbyUI, downloadRecord } from './ui/lobby';
 import { PressAllGate } from './ui/pressAllGate';
 import { hashString, mulberry32 } from './core/rng';
@@ -40,7 +40,7 @@ export class App {
   private readonly bgCtx = this.bg.getContext('2d')!;
   private readonly fxCtx = this.fx.getContext('2d')!;
 
-  private readonly idleClock: RippleClock;
+  private idleClock: RippleClock;
   private layout: Layout;
   private labels = new Map<string, string>();
   /** slotKey -> display label under the current mode. */
@@ -83,7 +83,7 @@ export class App {
   private maxFrameDelta = 0;
 
   constructor(private readonly cfg: GameConfig) {
-    this.idleClock = new RippleClock(performance.now(), cfg.ripple.frequencyHz);
+    this.idleClock = new RippleClock(performance.now(), 1000 / cfg.speeds[cfg.defaultSpeed]!);
 
     const profile = loadProfile() ?? {
       identifier: randomIdentifier(),
@@ -161,13 +161,18 @@ export class App {
       canvas.style.height = `${h}px`;
       canvas.getContext('2d')!.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    return computeLayout(w, h, this.currentModeSlots(), this.cfg);
+    return computeLayout(w, h, this.currentModeSlots());
   }
 
   private refreshLayout(): void {
     this.layout = this.computeCurrentLayout();
     // Mode-aware bindings: single-hand modes put the thumb on the spacebar.
     this.keyboard.setMode(this.lobby.getMode());
+    // Idle attract rain follows the selected speed.
+    const idlePeriod = periodOf(this.lobby.getMode(), this.cfg);
+    if (this.idleClock.periodMs !== idlePeriod) {
+      this.idleClock = new RippleClock(performance.now(), 1000 / idlePeriod);
+    }
     this.rebuildSlotLabels();
     this.redrawBackground();
     this.touch.reflow(this.layout);
@@ -240,7 +245,7 @@ export class App {
     const k = Math.ceil((now + COUNTDOWN_MIN_MS - this.idleClock.t0) / period);
     this.countdownT0 = this.idleClock.farApexTime(k);
 
-    this.runClock = new RippleClock(this.countdownT0, this.cfg.ripple.frequencyHz);
+    this.runClock = new RippleClock(this.countdownT0, 1000 / periodOf(mode, this.cfg));
     fillScheduleTimes(this.trials, this.runClock, this.cfg);
 
     this.runStartedAt = new Date();
@@ -318,7 +323,7 @@ export class App {
     el('complete-score').textContent = `${this.controller.score} pts`;
     el('complete-detail').textContent =
       `${this.controller.results.length} object records over ` +
-      `${new Set(this.controller.results.map((r) => r.trial)).size} waves`;
+      `${new Set(this.controller.results.map((r) => r.trial)).size} drops`;
     el('complete-saved').textContent = hasData
       ? 'data kept in this browser — not saved to file yet'
       : 'no completed trials — nothing to save';
@@ -362,9 +367,10 @@ export class App {
     return this.layout.columns.get(slotKey(slot)) ?? this.layout.width / 2;
   }
 
-  private edgeYNow(t: number): number {
-    const clock = this.runClock ?? this.idleClock;
-    return this.layout.shoreY + this.layout.amplitudePx * (1 - clock.displacement(t));
+  /** Vertical position of a trial's band/objects at time t (effects anchor). */
+  private objectY(trial: Trial | null, t: number): number {
+    if (!trial) return this.layout.crosshairY;
+    return fallY(this.layout, this.cfg.fall.fadeLeadMs, trial.peakTime, t);
   }
 
   /** Targets of a trial that are still visually intact (not popped/glanced). */
@@ -397,7 +403,7 @@ export class App {
       kind: 'glance',
       startT: t,
       x: this.colX(victim),
-      y: this.edgeYNow(t),
+      y: this.objectY(trial, t),
       color: this.cfg.visuals.fingerColors[victim.finger],
       seed: trial.index * 6151 + candidates.length,
     });
@@ -408,7 +414,7 @@ export class App {
     this.lastOffsetMs = press.offsetMs;
     this.audio.cue(cls);
     const x = this.colX(press.slot);
-    const y = this.edgeYNow(press.t);
+    const y = this.objectY(trial, press.t);
     const color = this.cfg.visuals.fingerColors[press.slot.finger];
 
     // Ammo fade bookkeeping: latched presses consume a slot; the fade
@@ -487,7 +493,7 @@ export class App {
     }
     const fade = this.latchFade.get(cycle);
     if (fade && (fade.full || fade.slots.has(key))) {
-      const fadeStart = fade.firstT + this.cfg.ripple.captureWindowMs;
+      const fadeStart = fade.firstT + this.cfg.timing.captureWindowMs;
       if (now >= fadeStart) {
         const p = Math.min(1, (now - fadeStart) / 300);
         alpha = Math.min(alpha, 1 - 0.65 * p);
@@ -598,38 +604,45 @@ export class App {
       }
     }
 
-    const objects: VisibleObject[] = [];
-    if (this.state === 'running' && this.controller && this.runClock) {
-      const cycle = this.runClock.cycleAt(now);
-      for (const k of [cycle, cycle + 1]) {
+    const fadeLead = this.cfg.fall.fadeLeadMs;
+    const trials: VisibleTrial[] = [];
+    if (running && this.controller && this.runClock) {
+      // Every scheduled band whose fall corridor intersects the screen:
+      // from the still-fading previous cycle up to the fade-in horizon.
+      const first = Math.max(0, this.runClock.cycleAt(now) - 1);
+      const last = Math.min(this.trials.length - 1, this.runClock.cycleAt(now + fadeLead) + 1);
+      for (let k = first; k <= last; k++) {
         const trial = this.controller.trialForCycle(k);
         if (!trial) continue;
-        const cycleEnd = this.runClock.farApexTime(k + 1);
-        for (const target of trial.targets) {
-          const key = `${trial.cycle}:${slotKey(target)}`;
-          objects.push({
-            slot: target,
-            spawnTime: trial.spawnTime,
-            windowClose: trial.windowClose,
-            cycleEnd,
-            destroyed: this.destroyed.has(key),
-            damaged: this.damagedSlots.has(key),
-          });
-        }
+        trials.push({
+          peakTime: trial.peakTime,
+          spawnTime: trial.spawnTime,
+          revealTime: trial.revealTime,
+          windowClose: trial.windowClose,
+          cycleEnd: this.runClock.farApexTime(k + 1) + 400,
+          targets: trial.targets.map((slot) => {
+            const key = `${trial.cycle}:${slotKey(slot)}`;
+            return {
+              slot,
+              destroyed: this.destroyed.has(key),
+              damaged: this.damagedSlots.has(key),
+            };
+          }),
+        });
       }
     } else if (this.state !== 'complete') {
-      // Lobby/armed preview: chord-size decorative objects floating out of reach.
-      const mode = this.lobby.getMode();
-      const slots = this.layout.orderedSlots.filter((s) => s.hand === (mode.hands === 'left' ? 'l' : 'r'));
-      const source = slots.length > 0 ? slots : this.layout.orderedSlots;
-      const start = Math.max(0, Math.floor((source.length - mode.chordSize) / 2));
-      for (let i = 0; i < Math.min(mode.chordSize, source.length); i++) {
-        objects.push({
-          slot: source[start + i]!,
-          spawnTime: 0,
-          windowClose: 0,
-          cycleEnd: Infinity,
-          destroyed: false,
+      // Lobby/armed attract: decorative neutral bands raining, never revealing.
+      const first = this.idleClock.cycleAt(now) - 1;
+      const last = this.idleClock.cycleAt(now + fadeLead) + 1;
+      for (let k = first; k <= last; k++) {
+        const peakTime = this.idleClock.peakTime(k);
+        trials.push({
+          peakTime,
+          spawnTime: peakTime - fadeLead,
+          revealTime: Infinity,
+          windowClose: peakTime,
+          cycleEnd: peakTime + 700,
+          targets: [],
           decorative: true,
         });
       }
@@ -656,7 +669,7 @@ export class App {
       fingerAlpha,
       fingerMode,
       windowPulse,
-      objects,
+      trials,
       effects: this.effects,
       showLetters,
       debug,

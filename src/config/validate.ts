@@ -43,13 +43,30 @@ function numArray(v: unknown, path: string): number[] {
 export function validateConfig(raw: unknown): GameConfig {
   const root = req(raw, '(root)');
 
-  const ripple = req(root.ripple, 'ripple');
-  const rippleOut = {
-    frequencyHz: num(ripple, 'ripple', 'frequencyHz', { min: 0.05, max: 5 }),
-    captureWindowMs: num(ripple, 'ripple', 'captureWindowMs', { min: 20 }),
-    windowCenterOffsetMs: num(ripple, 'ripple', 'windowCenterOffsetMs'),
-    amplitudePx: num(ripple, 'ripple', 'amplitudePx', { min: 40 }),
+  const timing = req(root.timing, 'timing');
+  const timingOut = {
+    captureWindowMs: num(timing, 'timing', 'captureWindowMs', { min: 20 }),
+    windowCenterOffsetMs: num(timing, 'timing', 'windowCenterOffsetMs'),
   };
+
+  const speedsRaw = req(root.speeds, 'speeds');
+  const speeds: GameConfig['speeds'] = {};
+  for (const [name, v] of Object.entries(speedsRaw)) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 200 || v > 20000) {
+      throw new ConfigError(`speeds.${name}`, 'must be a period in ms between 200 and 20000');
+    }
+    speeds[name] = v;
+  }
+  if (Object.keys(speeds).length === 0) {
+    throw new ConfigError('speeds', 'must define at least one speed');
+  }
+  const defaultSpeed = str(root, '(root)', 'defaultSpeed');
+  if (!(defaultSpeed in speeds)) {
+    throw new ConfigError('defaultSpeed', `"${defaultSpeed}" is not a key of speeds`);
+  }
+
+  const fall = req(root.fall, 'fall');
+  const fallOut = { fadeLeadMs: num(fall, 'fall', 'fadeLeadMs', { min: 500 }) };
 
   const difficultiesRaw = req(root.difficulties, 'difficulties');
   const difficulties: GameConfig['difficulties'] = {};
@@ -59,6 +76,15 @@ export function validateConfig(raw: unknown): GameConfig {
   }
   if (Object.keys(difficulties).length === 0) {
     throw new ConfigError('difficulties', 'must define at least one difficulty');
+  }
+
+  // Non-fatal: reveals must land while the band is visible.
+  const maxRt = Math.max(...Object.values(difficulties).flatMap((d) => d.reactionTimesMs));
+  if (fallOut.fadeLeadMs < maxRt + timingOut.captureWindowMs / 2 + 100) {
+    console.warn(
+      `game-config.json: fall.fadeLeadMs (${fallOut.fadeLeadMs}) is shorter than the longest ` +
+        `reaction time + half window; long-RT reveals may happen before the band fades in.`,
+    );
   }
 
   const run = req(root.run, 'run');
@@ -105,8 +131,8 @@ export function validateConfig(raw: unknown): GameConfig {
   const handShapes = {} as GameConfig['visuals']['handShapes'];
   for (const hand of HANDS) {
     const shape = str(shapesRaw, 'visuals.handShapes', hand);
-    if (shape !== 'leaf' && shape !== 'shell') {
-      throw new ConfigError(`visuals.handShapes.${hand}`, 'must be "leaf" or "shell"');
+    if (shape !== 'diamond' && shape !== 'circle') {
+      throw new ConfigError(`visuals.handShapes.${hand}`, 'must be "diamond" or "circle"');
     }
     handShapes[hand] = shape;
   }
@@ -153,7 +179,10 @@ export function validateConfig(raw: unknown): GameConfig {
   }
 
   return {
-    ripple: rippleOut,
+    timing: timingOut,
+    speeds,
+    defaultSpeed,
+    fall: fallOut,
     difficulties,
     run: runOut,
     scoring: scoringOut,

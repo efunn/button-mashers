@@ -42,7 +42,9 @@ export class RunController {
     private readonly columnX: (slot: FingerSlot) => number,
     private readonly events: RunEvents,
   ) {
-    this.lostDelayMs = clock.periodMs / 4;
+    // Never earlier than the window's close (matters at extreme speeds
+    // where period/4 would land inside the window).
+    this.lostDelayMs = Math.max(clock.periodMs / 4, cfg.timing.captureWindowMs / 2 + 150);
   }
 
   trialForCycle(cycle: number): Trial | null {
@@ -78,7 +80,7 @@ export class RunController {
     const hitTargetSlot = trial.targets.some((target) => sameSlot(target, slot));
     // Beyond the per-cycle limit (or a mashed repeat): penalized regardless
     // of timing, and recorded as its own target='x' row at resolve.
-    const cls: PressClass = latched ? classifyPress(offsetMs, hitTargetSlot, this.cfg.ripple) : 'excess';
+    const cls: PressClass = latched ? classifyPress(offsetMs, hitTargetSlot, this.cfg.timing) : 'excess';
     const points = pointsFor(cls, this.cfg.scoring);
 
     const press: PressEvent = { slot, t, offsetMs, cycle, latched, points };

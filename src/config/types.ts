@@ -1,13 +1,20 @@
 import type { Finger, Hand } from '../core/types';
 
-export interface RippleConfig {
-  frequencyHz: number;
+export interface TimingConfig {
   /** Total capture window width, centered on the peak (± half). */
   captureWindowMs: number;
   /** Shifts the window center relative to the peak; 0 = symmetric. */
   windowCenterOffsetMs: number;
-  /** Visual travel of the water edge in px. Rendering only. */
-  amplitudePx: number;
+}
+
+export interface FallConfig {
+  /**
+   * How long before its peak a band becomes visible near the top of the
+   * screen (its whole fall is prespawned; this is just the fade-in cutoff).
+   * Must exceed the longest reaction time + half window so every reveal
+   * happens while the band is visible. Rendering only.
+   */
+  fadeLeadMs: number;
 }
 
 export interface DifficultyConfig {
@@ -33,7 +40,7 @@ export interface ScoringConfig {
 
 export interface VisualsConfig {
   fingerColors: Record<Finger, string>;
-  handShapes: Record<Hand, 'leaf' | 'shell'>;
+  handShapes: Record<Hand, 'diamond' | 'circle'>;
   popDurationMs: number;
   scoreFloatDurationMs: number;
   /** Crosshair glow strength during the window; 0 disables the halo. */
@@ -55,7 +62,11 @@ export interface AudioConfig {
 }
 
 export interface GameConfig {
-  ripple: RippleConfig;
+  timing: TimingConfig;
+  /** Speed presets: name -> period between objects in ms. */
+  speeds: Record<string, number>;
+  defaultSpeed: string;
+  fall: FallConfig;
   difficulties: Record<string, DifficultyConfig>;
   run: RunConfig;
   scoring: ScoringConfig;

@@ -5,22 +5,33 @@ import { slotKey } from '../core/types';
 import { drawEffect, type Effect } from './effects';
 import { drawFingers, type FingerMode, type FingerVisualState } from './fingers';
 import { columnXLookup, type Layout } from './layout';
-import { drawObject } from './objects';
-import { drawShore, drawWater, edgeYAt } from './ripple';
+import { drawBand, drawObject } from './objects';
+import { drawBackdrop } from './background';
 
-export interface VisibleObject {
+/** How long the band -> target crossfade takes. Purely in place. */
+export const MORPH_MS = 120;
+
+export interface VisibleTarget {
   slot: FingerSlot;
-  /** Fade-in start. */
+  /** Popped or glanced away — no longer drawn (effects cover the exit). */
+  destroyed: boolean;
+  /** Cracked by an early/late press; still falling and catchable. */
+  damaged: boolean;
+}
+
+/** One falling band and (after its reveal) its target objects. */
+export interface VisibleTrial {
+  /** The moment the band crosses the target line. */
+  peakTime: number;
+  /** Fade-in start near the top of the corridor. */
   spawnTime: number;
-  /** End of the capture window (fade-out begins as it recedes). */
+  /** Band -> target morph moment (windowClose - RT). */
+  revealTime: number;
   windowClose: number;
   /** Hard end of visibility (cycle boundary). */
   cycleEnd: number;
-  /** Popped or glanced away — no longer drawn (effects cover the exit). */
-  destroyed: boolean;
-  /** Cracked by an early/late press; still afloat and catchable. */
-  damaged?: boolean;
-  /** Lobby preview objects: pinned far out on the water. */
+  targets: VisibleTarget[];
+  /** Lobby rain: a band that never reveals. */
   decorative?: boolean;
 }
 
@@ -44,48 +55,65 @@ export interface RenderState {
   fingerMode: FingerMode;
   /** 0..1 progress through the current capture window; null when closed. */
   windowPulse: number | null;
-  objects: VisibleObject[];
+  trials: VisibleTrial[];
   effects: Effect[];
   showLetters: boolean;
   debug: DebugInfo | null;
 }
 
+/** Vertical position of a trial's band/objects at time `now`. */
+export function fallY(layout: Layout, fadeLeadMs: number, peakTime: number, now: number): number {
+  const v = (layout.crosshairY - layout.topMarginPx) / fadeLeadMs;
+  return layout.crosshairY - v * (peakTime - now);
+}
+
 export function renderBackground(ctx: CanvasRenderingContext2D, layout: Layout): void {
-  drawShore(ctx, layout);
+  drawBackdrop(ctx, layout);
 }
 
 export function renderFrame(ctx: CanvasRenderingContext2D, cfg: GameConfig, state: RenderState): void {
-  const { layout, clock, now } = state;
+  const { layout, now } = state;
   ctx.clearRect(0, 0, layout.width, layout.height);
 
-  const displacement = clock.displacement(now);
-  const baseY = layout.shoreY + layout.amplitudePx * (1 - displacement);
-
-  drawWater(ctx, layout, baseY, now);
-
-  // Objects ride the water edge in their finger's column.
   const colX = columnXLookup(layout);
-  for (const obj of state.objects) {
-    if (obj.destroyed) continue;
-    const x = colX(obj.slot);
-    let y: number;
-    let alpha: number;
-    if (obj.decorative) {
-      y = edgeYAt(x, layout.shoreY + layout.amplitudePx * 0.8, now) - layout.objectHeight * 0.2;
-      alpha = 0.9;
-    } else {
-      if (now < obj.spawnTime || now >= obj.cycleEnd) continue;
-      // Centered on the water edge, so it sits centered under the crosshair
-      // when the ripple reaches its peak.
-      y = edgeYAt(x, baseY, now);
-      const fadeIn = Math.min(1, (now - obj.spawnTime) / 150);
-      const fadeOut =
-        now > obj.windowClose
-          ? Math.max(0, 1 - (now - obj.windowClose) / Math.max(1, obj.cycleEnd - obj.windowClose))
-          : 1;
-      alpha = fadeIn * (0.35 + 0.65 * fadeOut);
+  const fadeLead = cfg.fall.fadeLeadMs;
+
+  for (const trial of state.trials) {
+    if (now < trial.spawnTime || now >= trial.cycleEnd) continue;
+    const y = fallY(layout, fadeLead, trial.peakTime, now);
+    if (y > layout.height + layout.objectHeight) continue;
+
+    // Shared alpha envelope: fade in near the top, fade out after the window.
+    const fadeIn = Math.min(1, (now - trial.spawnTime) / 300);
+    const fadeOut =
+      now > trial.windowClose ? Math.max(0, 1 - (now - trial.windowClose) / 500) : 1;
+    const envelope = fadeIn * fadeOut;
+    if (envelope <= 0) continue;
+
+    // Band -> target crossfade, strictly in place: the morph looks the same
+    // whichever column the target is in.
+    const revealing = !trial.decorative && now >= trial.revealTime;
+    const morph = revealing ? Math.min(1, (now - trial.revealTime) / MORPH_MS) : 0;
+
+    if (morph < 1) {
+      drawBand(ctx, layout, y, envelope * (1 - morph));
     }
-    drawObject(ctx, cfg, obj.slot, x, y, layout.objectHeight, alpha, now, obj.damaged ?? false);
+    if (morph > 0) {
+      for (const target of trial.targets) {
+        if (target.destroyed) continue;
+        drawObject(
+          ctx,
+          cfg,
+          target.slot,
+          colX(target.slot),
+          y,
+          layout.objectHeight,
+          envelope * morph,
+          now,
+          target.damaged,
+        );
+      }
+    }
   }
 
   drawFingers(

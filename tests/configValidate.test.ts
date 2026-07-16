@@ -8,8 +8,21 @@ import { fileURLToPath } from 'node:url';
 describe('validateConfig', () => {
   it('accepts a complete config', () => {
     const cfg = validateConfig(JSON.parse(JSON.stringify(testConfig())));
-    expect(cfg.ripple.frequencyHz).toBe(0.5);
+    expect(cfg.timing.captureWindowMs).toBe(200);
+    expect(cfg.speeds.fast).toBe(1000);
+    expect(cfg.defaultSpeed).toBe('fast');
+    expect(cfg.fall.fadeLeadMs).toBe(2500);
     expect(Object.keys(cfg.difficulties)).toContain('medium');
+  });
+
+  it('rejects bad speeds and unknown defaultSpeed', () => {
+    const badSpeed = JSON.parse(JSON.stringify(testConfig()));
+    badSpeed.speeds.warp = 50; // below the 200ms floor
+    expect(() => validateConfig(badSpeed)).toThrow(/speeds\.warp/);
+
+    const badDefault = JSON.parse(JSON.stringify(testConfig()));
+    badDefault.defaultSpeed = 'ludicrous';
+    expect(() => validateConfig(badDefault)).toThrow(/defaultSpeed/);
   });
 
   it('accepts the shipped public/game-config.json (with comments)', () => {
@@ -34,7 +47,7 @@ describe('validateConfig', () => {
 
   it('rejects missing sections and bad values with descriptive paths', () => {
     const base = JSON.parse(JSON.stringify(testConfig())) as Record<string, unknown>;
-    expect(() => validateConfig({ ...base, ripple: undefined })).toThrow(/ripple/);
+    expect(() => validateConfig({ ...base, timing: undefined })).toThrow(/timing/);
     expect(() => validateConfig({ ...base, difficulties: {} })).toThrow(/difficulties/);
 
     const badTiming = JSON.parse(JSON.stringify(testConfig()));

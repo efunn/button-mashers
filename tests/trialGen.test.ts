@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   activeFingers,
   buildTransitionBalancedSequence,
+  fillScheduleTimes,
   generateSchedule,
   planSchedule,
   targetSets,
 } from '../src/core/trialGen';
+import { RippleClock } from '../src/core/clock';
 import { mulberry32 } from '../src/core/rng';
 import { slotKey } from '../src/core/types';
 import { mode, testConfig } from './helpers';
@@ -49,9 +51,11 @@ describe('planSchedule', () => {
     expect(plan.totalTrials).toBe(100); // closest multiple of 100 to 150 is 100 or 200; 100 wins ties? |100-150|=|200-150| -> first found kept
   });
 
-  it('computes run duration from ripple frequency', () => {
-    const plan = planSchedule(mode(), cfg);
-    expect(plan.runDurationMs).toBe(150 * 2000);
+  it('computes run duration from the selected speed', () => {
+    expect(planSchedule(mode(), cfg).runDurationMs).toBe(150 * 2000); // 'legacy' = 2000ms
+    expect(planSchedule(mode({ speed: 'extreme' }), cfg).runDurationMs).toBe(150 * 500);
+    expect(planSchedule(mode({ speed: 'slow' }), cfg).runDurationMs).toBe(150 * 1500);
+    expect(() => planSchedule(mode({ speed: 'nope' }), cfg)).toThrow(/Unknown speed/);
   });
 });
 
@@ -209,6 +213,17 @@ describe('generateSchedule', () => {
       expect(t.index).toBe(i + 1);
       expect(t.cycle).toBe(i);
     });
+  });
+
+  it('reveal carries the RT manipulation; band fade-in is uniform', () => {
+    const trials = generateSchedule(mode(), cfg, 3);
+    const clock = new RippleClock(5000, 1000 / cfg.speeds['legacy']!);
+    fillScheduleTimes(trials, clock, cfg);
+    for (const t of trials) {
+      expect(t.revealTime).toBe(t.windowClose - t.reactionTimeMs);
+      expect(t.spawnTime).toBe(t.peakTime - cfg.fall.fadeLeadMs);
+      expect(t.revealTime).toBeGreaterThanOrEqual(t.spawnTime);
+    }
   });
 
   it('single-object trials have exactly one target from the active slots', () => {

@@ -3,21 +3,21 @@ import type { PressClass } from '../core/types';
 import { RippleClock } from '../core/clock';
 
 /**
- * Fully synthesized soundscape (no assets): a filtered-noise wave wash that
- * swells with the ripple, a soft chime at each peak, and per-outcome score
- * cues. Everything is scheduled on the AudioContext clock via a mapping
- * from the performance.now() timeline, so the wash and peak cues line up
- * with the visual wave regardless of frame rate.
+ * Fully synthesized cues (no assets, no background track): a low pulse at
+ * each crossing and per-outcome score cues. Everything is scheduled on the
+ * AudioContext clock via a mapping from the performance.now() timeline, so
+ * the pulses line up with the visuals regardless of frame rate. Players are
+ * welcome to vibe to their own music underneath.
  *
  * Game timing is never derived from audio; this is presentation only.
  */
 export class GameAudio {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  private washGain: GainNode | null = null;
-  private washSource: AudioBufferSourceNode | null = null;
+  /** Pre-scheduled run pulses route here so an abort can mute them. */
+  private pulseGain: GainNode | null = null;
   private clock: RippleClock | null = null;
-  /** Last ripple cycle whose wash/peak events have been scheduled. */
+  /** Last ripple cycle whose peak pulse has been scheduled. */
   private scheduledThrough = -1;
   private readonly volume: number;
 
@@ -37,23 +37,8 @@ export class GameAudio {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.volume;
       this.master.connect(this.ctx.destination);
-
-      // Wave wash: looped noise -> gentle lowpass -> per-cycle gain swells.
-      const seconds = 2;
-      const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * seconds, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-      this.washSource = this.ctx.createBufferSource();
-      this.washSource.buffer = buffer;
-      this.washSource.loop = true;
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 650;
-      filter.Q.value = 0.4;
-      this.washGain = this.ctx.createGain();
-      this.washGain.gain.value = 0;
-      this.washSource.connect(filter).connect(this.washGain).connect(this.master);
-      this.washSource.start();
+      this.pulseGain = this.ctx.createGain();
+      this.pulseGain.connect(this.master);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -65,46 +50,38 @@ export class GameAudio {
 
   /** Begin following a run clock (call at countdown/run start). */
   startRun(clock: RippleClock): void {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.pulseGain) return;
     this.clock = clock;
     this.scheduledThrough = clock.cycleAt(performance.now()) - 1;
+    this.pulseGain.gain.cancelScheduledValues(this.ctx.currentTime);
+    this.pulseGain.gain.setValueAtTime(1, this.ctx.currentTime);
   }
 
   /**
-   * Schedule wash swells and peak chimes for upcoming cycles. Call every
-   * frame; schedules ~2s ahead so dropped frames don't cause gaps.
+   * Schedule the low crossing pulse for upcoming cycles. Call every frame;
+   * schedules ~2s ahead so dropped frames don't cause gaps.
    */
   update(now: number): void {
-    if (!this.ctx || !this.washGain || !this.clock) return;
+    if (!this.ctx || !this.clock) return;
     const horizon = now + 2000;
     while (this.clock.farApexTime(this.scheduledThrough + 1) < horizon) {
       const k = ++this.scheduledThrough;
       if (k < 0) continue;
-      const apex = this.audioTime(this.clock.farApexTime(k));
       const peak = this.audioTime(this.clock.peakTime(k));
-      const nextApex = this.audioTime(this.clock.farApexTime(k + 1));
-      if (nextApex <= this.ctx.currentTime) continue;
+      if (peak <= this.ctx.currentTime) continue;
 
-      // Wash: swell in toward the peak, recede after.
-      const g = this.washGain.gain;
-      g.setValueAtTime(0.015, Math.max(apex, this.ctx.currentTime));
-      g.linearRampToValueAtTime(0.11, peak);
-      g.linearRampToValueAtTime(0.015, nextApex);
-
-      // Peak cue: a soft two-partial chime exactly at the peak.
-      this.chime(peak, 660, 0.05, 0.35);
-      this.chime(peak, 1320, 0.018, 0.25);
+      // Crossing cue: a low pulse with a soft attack, centered on the
+      // timing window (replaces the old high chime).
+      this.tone(peak - 0.04, 200, 0.06, 0.26, 'sine', undefined, undefined, 0.04, this.pulseGain!);
     }
   }
 
-  /** Stop following the run; fade the wash out. */
+  /** Stop following the run; mute any pre-scheduled crossing pulses. */
   stopRun(): void {
     this.clock = null;
-    if (this.ctx && this.washGain) {
-      const g = this.washGain.gain;
-      g.cancelScheduledValues(this.ctx.currentTime);
-      g.setValueAtTime(g.value, this.ctx.currentTime);
-      g.linearRampToValueAtTime(0, this.ctx.currentTime + 0.6);
+    if (this.ctx && this.pulseGain) {
+      this.pulseGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.pulseGain.gain.setValueAtTime(0, this.ctx.currentTime);
     }
   }
 
@@ -113,9 +90,11 @@ export class GameAudio {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     switch (kind) {
-      case 'correct': // rising major third: bright, rewarding
-        this.tone(t, 523, 0.09, 0.1, 'sine');
-        this.tone(t + 0.08, 659, 0.1, 0.14, 'sine');
+      case 'correct': // rising major arpeggio + octave sparkle: rewarding
+        this.tone(t, 523, 0.1, 0.1, 'sine');
+        this.tone(t + 0.06, 659, 0.1, 0.1, 'sine');
+        this.tone(t + 0.12, 784, 0.12, 0.16, 'sine');
+        this.tone(t + 0.12, 1568, 0.035, 0.22, 'sine');
         break;
       case 'wrongFinger': // single mid tone: neutral
         this.tone(t, 440, 0.08, 0.12, 'triangle');
@@ -133,10 +112,6 @@ export class GameAudio {
     }
   }
 
-  private chime(t: number, freq: number, gain: number, duration: number): void {
-    this.tone(Math.max(t, this.ctx!.currentTime), freq, gain, duration, 'sine');
-  }
-
   private tone(
     t: number,
     freq: number,
@@ -145,16 +120,19 @@ export class GameAudio {
     type: OscillatorType,
     lowpassHz?: number,
     glideTo?: number,
+    attack = 0.012,
+    destination?: GainNode,
   ): void {
     const ctx = this.ctx!;
+    const start = Math.max(t, ctx.currentTime);
     const osc = ctx.createOscillator();
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    if (glideTo !== undefined) osc.frequency.linearRampToValueAtTime(glideTo, t + duration);
+    osc.frequency.setValueAtTime(freq, start);
+    if (glideTo !== undefined) osc.frequency.linearRampToValueAtTime(glideTo, start + duration);
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(gain, t + 0.012);
-    env.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    env.gain.setValueAtTime(0, start);
+    env.gain.linearRampToValueAtTime(gain, start + attack);
+    env.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     let head: AudioNode = osc;
     if (lowpassHz !== undefined) {
       const lp = ctx.createBiquadFilter();
@@ -163,8 +141,8 @@ export class GameAudio {
       osc.connect(lp);
       head = lp;
     }
-    head.connect(env).connect(this.master!);
-    osc.start(t);
-    osc.stop(t + duration + 0.05);
+    head.connect(env).connect(destination ?? this.master!);
+    osc.start(start);
+    osc.stop(start + duration + 0.05);
   }
 }

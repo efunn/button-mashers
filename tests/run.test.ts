@@ -19,7 +19,7 @@ interface Captured {
 
 function makeRun(m = mode(), seed = 42): { rc: RunController; clock: RippleClock; trials: Trial[]; cap: Captured } {
   const trials = generateSchedule(m, cfg, seed);
-  const clock = new RippleClock(10_000, cfg.ripple.frequencyHz);
+  const clock = new RippleClock(10_000, 1000 / cfg.speeds[m.speed]!);
   fillScheduleTimes(trials, clock, cfg);
   const cap: Captured = { presses: [], resolved: [], lost: [], completed: false };
   const events: RunEvents = {

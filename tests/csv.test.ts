@@ -59,15 +59,15 @@ describe('sanitizeNickname', () => {
 describe('csvFilename', () => {
   const startedAt = new Date(2026, 6, 8, 15, 30, 12);
 
-  it('includes identifier, nickname, mode tag, difficulty, timestamp', () => {
+  it('includes identifier, nickname, mode tag, difficulty, speed, timestamp', () => {
     expect(
-      csvFilename({ identifier: '7GK4QZ', nickname: 'Ethan', mode: mode({ hands: 'both' }), startedAt, aborted: false }),
-    ).toBe('bm_7GK4QZ_ethan_b10f1o_medium_20260708-153012.csv');
+      csvFilename({ identifier: '7GK4QZ', nickname: 'Ethan', mode: mode({ hands: 'both', speed: 'fast' }), startedAt, aborted: false }),
+    ).toBe('bm_7GK4QZ_ethan_b10f1o_medium_fast_20260708-153012.csv');
   });
 
   it('omits empty nickname and marks aborted runs', () => {
     expect(
-      csvFilename({ identifier: 'ABC123', nickname: '', mode: mode({ fingersPerHand: 3, chordSize: 2, difficulty: 'hard' }), startedAt, aborted: true }),
-    ).toBe('bm_ABC123_l3f2o_hard_20260708-153012_aborted.csv');
+      csvFilename({ identifier: 'ABC123', nickname: '', mode: mode({ fingersPerHand: 3, chordSize: 2, difficulty: 'hard', speed: 'extreme' }), startedAt, aborted: true }),
+    ).toBe('bm_ABC123_l3f2o_hard_extreme_20260708-153012_aborted.csv');
   });
 });

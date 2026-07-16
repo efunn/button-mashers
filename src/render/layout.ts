@@ -1,4 +1,3 @@
-import type { GameConfig } from '../config/types';
 import type { Finger, FingerSlot, Hand } from '../core/types';
 import { slotKey } from '../core/types';
 
@@ -6,17 +5,14 @@ import { slotKey } from '../core/types';
 export interface Layout {
   width: number;
   height: number;
-  /** Waterline at full ripple extension; fingers sit just above. */
-  shoreY: number;
   /** Vertical center of the finger key buttons (lobby / press-all screens). */
   fingerY: number;
-  /** Vertical center of the gameplay crosshairs: on the waterline peak, so
-   *  an object riding the edge is centered under them at peak time. */
+  /** The target line: bands cross it exactly at their trial's peak time. */
   crosshairY: number;
-  /** Normalized vertical height shared by both object shapes. */
+  /** Normalized vertical height shared by both object shapes and the band. */
   objectHeight: number;
-  /** Actual water travel in px (config amplitude clamped to fit). */
-  amplitudePx: number;
+  /** Top of the fall corridor: bands fade in just below this. */
+  topMarginPx: number;
   columns: Map<string, number>;
   orderedSlots: FingerSlot[];
   objectRadius: number;
@@ -41,13 +37,13 @@ export function computeLayout(
   width: number,
   height: number,
   slots: FingerSlot[],
-  cfg: GameConfig,
 ): Layout {
   const orderedSlots = orderSlotsForDisplay(slots);
   const twoHands = orderedSlots.some((s) => s.hand === 'l') && orderedSlots.some((s) => s.hand === 'r');
 
-  const shoreY = Math.round(height * 0.3);
-  const amplitudePx = Math.min(cfg.ripple.amplitudePx, Math.max(80, height - shoreY - 90));
+  // Rain falls through the upper ~62% of the screen; controls live below.
+  const crosshairY = Math.round(height * 0.62);
+  const topMarginPx = 20;
 
   // Columns: even spacing; in two-handed mode the fingers pack tighter and
   // the thumbs sit 1.5 finger-spacings apart (0.5 extra beyond normal).
@@ -74,18 +70,16 @@ export function computeLayout(
 
   const fingerRadius = Math.max(14, Math.min(24, maxSpacing * 0.3));
   const objectRadius = Math.max(11, Math.min(20, maxSpacing * 0.26));
-  const fingerY = shoreY - fingerRadius - 14;
-  const crosshairY = shoreY;
+  const fingerY = crosshairY - fingerRadius - 14;
   const objectHeight = objectRadius * 2.1;
 
   return {
     width,
     height,
-    shoreY,
     fingerY,
     crosshairY,
     objectHeight,
-    amplitudePx,
+    topMarginPx,
     columns,
     orderedSlots,
     objectRadius,

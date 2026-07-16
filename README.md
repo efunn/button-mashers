@@ -1,9 +1,13 @@
 # Tideline
 
 A web-based human experimental data collection system for measuring finger
-error behavior, presented as a rhythm-game-like catching game: a ripple laps
-at a shoreline carrying objects toward fixed finger positions; the
-participant presses the matching key inside a timing window. Every trial is
+error behavior, presented as a rhythm-game-like catching game: neutral
+bands fall at constant speed toward a target line and morph into colored
+target objects at a reaction-time-controlled reveal moment; the participant
+presses the matching key inside a timing window as the object crosses the
+line. Because every trial looks identical until its reveal, there is no
+early cue that a trial is 'impossible' — spontaneous finger selection is
+exactly what gets measured. Every trial is
 pregenerated, counterbalanced, and exported as CSV. Pressing the *exact*
 right number of keys matters: missed objects and excess presses cost
 points.
@@ -27,16 +31,17 @@ host. If your host allows custom headers, add
 
 1. The lobby shows a persistent random participant ID (Crockford base32) and
    an optional nickname field.
-2. Pick hands (left/right/both), fingers per hand (3 or 5), objects per wave
-   (1 = single, 2–3 = chords, always within one hand), and difficulty. The
+2. Pick hands (left/right/both), fingers per hand (3/4/5), objects per drop
+   (1 = single, 2–3 = chords, always within one hand), speed
+   (slow/fast/extreme — how often objects fall), and difficulty. The
    projected run length is shown below the selectors.
 3. **Ready → press all to start**: every mapped key must be pressed once; in
    chord modes, also hold several keys together — if some don't light up,
    the keyboard is dropping chord presses (see *Keyboard rollover* below).
-4. A countdown synced to the ripple starts the run. During gameplay the key
-   hints disappear and the finger indicators become crosshairs on the
-   waterline; they pulse while the capture window is open.
-5. After the last wave, results are stored in `localStorage` and shown on
+4. A countdown synced to the falling rhythm starts the run. During gameplay
+   the key hints disappear and the finger indicators become crosshairs on
+   the target line; they pulse while the capture window is open.
+5. After the last drop, results are stored in `localStorage` and shown on
    the completion screen — **CSV export is manual** (the *save csv* button
    there, or later from the lobby's *past runs* list). Nothing downloads
    automatically.
@@ -59,9 +64,10 @@ non-thumb four (Q-W-E-R / U-I-O-P). Mobile devices get a touch demo
 a full-width button beneath the four fingers); it demos the mechanics but is
 not intended for serious collection.
 
-A synthesized soundscape (wave wash synced to the ripple, a soft chime at
-each peak, and per-outcome score cues) plays during runs; set
-`audio.masterVolume` to 0 in the config for silent collection.
+Synthesized audio cues (a low pulse at each line crossing and per-outcome
+score sounds — no background track, so feel free to play your own music)
+accompany runs; set `audio.masterVolume` to 0 in the config for silent
+collection.
 
 Escape aborts a run at any time and returns to the lobby. Switching away
 from the tab (or any freeze longer than ~0.6 s) also aborts: frozen frames
@@ -79,9 +85,9 @@ All experiment parameters live in [public/game-config.json](public/game-config.j
 without rebuilding. See [docs/config-reference.md](docs/config-reference.md)
 for every field. Highlights:
 
-- `ripple.frequencyHz` — wave cycles per second (default ≈0.33 = one object every 3 s)
-- `ripple.captureWindowMs` — total window width, centered on the moment the
-  ripple reaches the fingers
+- `speeds` — named periods between objects (slow/fast/extreme = 1500/1000/500 ms)
+- `timing.captureWindowMs` — total window width, centered on the moment the
+  band crosses the target line
 - `difficulties.*.reactionTimesMs` — the reaction-time conditions; values
   near or below simple-RT floor (~250 ms) are intentionally impossible and
   probe finger-selection errors under time pressure
@@ -106,25 +112,25 @@ trial number), plus one row per **excess press** (`target_finger` = `x`),
 so a spammed trial can have more rows than its chord size. Filter
 `target_finger != 'x'` for the per-object view. The points column sums to
 the run score. Filename:
-`bm_<id>[_<nickname>]_<hands><fingers>f<objects>o_<difficulty>_<timestamp>[_aborted].csv`
+`bm_<id>[_<nickname>]_<hands><fingers>f<objects>o_<difficulty>_<speed>_<timestamp>[_aborted].csv`
 
 | column           | meaning                                                                   |
 | ---------------- | ------------------------------------------------------------------------- |
-| `trial`          | 1-based trial (wave) number                                                |
+| `trial`          | 1-based trial (drop) number                                                |
 | `target_finger`  | `t`/`i`/`m`/`r`/`l` (thumb…little), or `x` for an excess-press row         |
 | `target_hand`    | `l`/`r`, or `x` for an excess-press row                                    |
 | `pressed_finger` | finger attributed to this object, or `x` for no press                     |
 | `pressed_hand`   | hand of that press, or `x`                                                 |
-| `timing_ms`      | reaction-time condition (spawn → end of window)                            |
-| `press_ms`       | press time relative to the ripple peak (0 = perfect, −152 = early, 253 = late); empty for no press |
+| `timing_ms`      | reaction-time condition (reveal → end of window)                            |
+| `press_ms`       | press time relative to the line crossing (0 = perfect, −152 = early, 253 = late); empty for no press |
 | `points`         | 3 correct-in-window, 1 wrong-finger-in-window, 0 early/late, −1 no-press or excess press |
 | `chord_size`     | objects in this trial (1–3)                                                |
-| `cycle`          | 0-based ripple cycle index                                                 |
+| `cycle`          | 0-based drop cycle index                                                 |
 
 Scoring is press-intrinsic (decided the moment the key goes down); for
 chords, correct presses are attributed to their own object and wrong presses
 to the nearest remaining object (optimal assignment, deterministic
-tie-break) after the wave resolves.
+tie-break) after the drop resolves.
 
 ### Measurement notes for analysis
 

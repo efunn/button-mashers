@@ -36,22 +36,28 @@ export class LobbyUI {
       fingersPerHand: mobile ? (cfg.modes.mobile.fingers as 3 | 4 | 5) : 5,
       chordSize: 1,
       difficulty: defaultDifficulty,
+      speed: cfg.defaultSpeed,
     };
 
-    // Build difficulty segment from config.
-    const diffSeg = el<HTMLElement>('sel-difficulty');
-    for (const name of difficulties) {
-      const btn = document.createElement('button');
-      btn.dataset.value = name;
-      btn.textContent = name;
-      if (name === defaultDifficulty) btn.classList.add('active');
-      diffSeg.appendChild(btn);
-    }
+    // Build difficulty + speed segments from config.
+    const buildSegment = (id: string, names: string[], active: string): void => {
+      const seg = el<HTMLElement>(id);
+      for (const name of names) {
+        const btn = document.createElement('button');
+        btn.dataset.value = name;
+        btn.textContent = name;
+        if (name === active) btn.classList.add('active');
+        seg.appendChild(btn);
+      }
+    };
+    buildSegment('sel-difficulty', difficulties, defaultDifficulty);
+    buildSegment('sel-speed', Object.keys(cfg.speeds), cfg.defaultSpeed);
 
     this.wireSegment('sel-hands', (v) => (this.mode.hands = v as ModeSelection['hands']));
     this.wireSegment('sel-fingers', (v) => (this.mode.fingersPerHand = Number(v) as 3 | 4 | 5));
     this.wireSegment('sel-chord', (v) => (this.mode.chordSize = Number(v) as 1 | 2 | 3));
     this.wireSegment('sel-difficulty', (v) => (this.mode.difficulty = v));
+    this.wireSegment('sel-speed', (v) => (this.mode.speed = v));
 
     if (mobile) this.applyMobileConstraints();
 
@@ -109,7 +115,7 @@ export class LobbyUI {
     const mins = Math.floor(totalSec / 60);
     const secs = String(totalSec % 60).padStart(2, '0');
     this.runInfo.textContent =
-      `${plan.totalTrials} waves · ${mins}:${secs}` +
+      `${plan.totalTrials} drops · ${mins}:${secs}` +
       (plan.numSets === 1 ? ' · single combination' : '');
     this.runInfo.classList.toggle('warn', plan.outOfBounds);
     if (plan.outOfBounds) {
